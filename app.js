@@ -7,10 +7,11 @@ let initialView = {
     zoom: 17
 };
 
-// Base map layers
-const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-    attribution: 'Esri, DigitalGlobe, GeoEye, Earthstar Geographics, CNES/Airbus DS, USDA, USGS, AeroGRID, IGN',
-    maxZoom: 20
+// Base map layers - Using Google Satellite tiles via third-party provider
+const satelliteLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+    attribution: 'Google Satellite',
+    maxZoom: 21,
+    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
 });
 
 const greyLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
@@ -75,9 +76,10 @@ function loadLotsData() {
                 padding: [50, 50]
             });
 
-            // Update initial view after fitting
+            // Update initial view after fitting and increase zoom by 1 level
             initialView.center = map.getCenter();
-            initialView.zoom = map.getZoom();
+            initialView.zoom = map.getZoom() + 1;
+            map.setZoom(initialView.zoom);
 
             // Hide loading spinner
             document.getElementById('loading').classList.add('hidden');
