@@ -61,11 +61,17 @@ function loadLotsData() {
             data.features.forEach(feature => {
                 if (feature.properties.lot_no) {
                     const center = getPolygonCenter(feature.geometry.coordinates[0][0]);
+                    // Add star icon for spec home (lot 22)
+                    const labelHtml = feature.properties.status === 'spec_home'
+                        ? `${feature.properties.lot_no} <span style="color: #f39c12;">★</span>`
+                        : feature.properties.lot_no;
+
                     L.marker(center, {
                         icon: L.divIcon({
                             className: 'lot-label',
-                            html: feature.properties.lot_no,
-                            iconSize: null
+                            html: labelHtml,
+                            iconSize: null,
+                            iconAnchor: [0, 0]
                         })
                     }).addTo(map);
                 }
@@ -105,10 +111,19 @@ function getPolygonCenter(coordinates) {
     return [lat / n, lng / n];
 }
 
+// Status color mapping
+const statusColors = {
+    available: '#2ecc71',    // Green
+    pending: '#f39c12',       // Yellow/Orange
+    sold: '#e74c3c',          // Red
+    spec_home: '#3498db'      // Blue
+};
+
 // Default style for lots
-function getDefaultStyle() {
+function getDefaultStyle(feature) {
+    const status = feature.properties.status || 'available';
     return {
-        fillColor: '#4A90E2',
+        fillColor: statusColors[status],
         weight: 2,
         opacity: 1,
         color: '#1a1a1a',
@@ -117,9 +132,10 @@ function getDefaultStyle() {
 }
 
 // Highlight style
-function getHighlightStyle() {
+function getHighlightStyle(feature) {
+    const status = feature.properties.status || 'available';
     return {
-        fillColor: '#4A90E2',
+        fillColor: statusColors[status],
         weight: 3,
         opacity: 1,
         color: '#1a1a1a',
@@ -128,13 +144,14 @@ function getHighlightStyle() {
 }
 
 // Selected style
-function getSelectedStyle() {
+function getSelectedStyle(feature) {
+    const status = feature.properties.status || 'available';
     return {
-        fillColor: '#2ecc71',
+        fillColor: statusColors[status],
         weight: 3,
         opacity: 1,
         color: '#1a1a1a',
-        fillOpacity: 0.5
+        fillOpacity: 0.7
     };
 }
 
@@ -143,14 +160,14 @@ function onEachLot(feature, layer) {
     // Hover effects
     layer.on('mouseover', function(e) {
         if (selectedLot !== layer) {
-            layer.setStyle(getHighlightStyle());
+            layer.setStyle(getHighlightStyle(feature));
         }
         layer.bringToFront();
     });
 
     layer.on('mouseout', function(e) {
         if (selectedLot !== layer) {
-            layer.setStyle(getDefaultStyle());
+            layer.setStyle(getDefaultStyle(feature));
         }
     });
 
@@ -172,13 +189,14 @@ function onEachLot(feature, layer) {
 // Select a lot and show details
 function selectLot(layer, feature) {
     // Reset previous selection
-    if (selectedLot) {
-        selectedLot.setStyle(getDefaultStyle());
+    if (selectedLot && selectedLot.feature) {
+        selectedLot.setStyle(getDefaultStyle(selectedLot.feature));
     }
 
     // Set new selection
     selectedLot = layer;
-    layer.setStyle(getSelectedStyle());
+    selectedLot.feature = feature;
+    layer.setStyle(getSelectedStyle(feature));
 
     // Get lot bounds
     const bounds = layer.getBounds();
@@ -194,17 +212,30 @@ function selectLot(layer, feature) {
     showPropertyDetails(feature.properties);
 }
 
+// Get status display name
+function getStatusDisplayName(status) {
+    const statusNames = {
+        available: 'Available',
+        pending: 'Pending',
+        sold: 'Sold',
+        spec_home: 'Spec Home'
+    };
+    return statusNames[status] || 'Available';
+}
+
 // Show property details in drawer
 function showPropertyDetails(properties) {
     const drawer = document.getElementById('propertyDrawer');
     const lotNumber = document.getElementById('lotNumber');
     const acreage = document.getElementById('acreage');
     const dimensions = document.getElementById('dimensions');
+    const status = document.getElementById('status');
 
     // Update content
     lotNumber.textContent = properties.lot_no || 'N/A';
     acreage.textContent = properties.acreage ? `${properties.acreage} acres` : 'N/A';
     dimensions.textContent = properties.dimensions || 'N/A';
+    status.textContent = getStatusDisplayName(properties.status);
 
     // Show drawer with animation
     drawer.classList.add('active');
@@ -216,8 +247,8 @@ function closePropertyDrawer() {
     drawer.classList.remove('active');
 
     // Reset selection
-    if (selectedLot) {
-        selectedLot.setStyle(getDefaultStyle());
+    if (selectedLot && selectedLot.feature) {
+        selectedLot.setStyle(getDefaultStyle(selectedLot.feature));
         selectedLot = null;
     }
 }
