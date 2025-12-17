@@ -4,7 +4,7 @@ let lotsLayer;
 let selectedLot = null;
 let initialView = {
     center: [40.23305, -83.02365],
-    zoom: 17
+    zoom: 18
 };
 
 // Base map layers - Using Google Satellite tiles via third-party provider
@@ -28,10 +28,7 @@ function initMap() {
         zoomControl: false
     });
 
-    // Add zoom control to bottom left
-    L.control.zoom({
-        position: 'bottomleft'
-    }).addTo(map);
+  
 
     // Add layer control
     const baseMaps = {
@@ -40,6 +37,11 @@ function initMap() {
     };
 
     L.control.layers(baseMaps, null, {
+        position: 'topleft'
+    }).addTo(map);
+
+      // Add zoom control to bottom left
+    L.control.zoom({
         position: 'topleft'
     }).addTo(map);
 
@@ -60,16 +62,17 @@ function loadLotsData() {
             // Add labels for each lot
             data.features.forEach(feature => {
                 if (feature.properties.lot_no) {
-                    const center = getPolygonCenter(feature.geometry.coordinates[0][0]);
-                    // Add star icon for spec home (lot 22)
-                    const labelHtml = feature.properties.status === 'spec_home'
-                        ? `${feature.properties.lot_no} <span style="color: #f39c12;">★</span>`
-                        : feature.properties.lot_no;
+                    const topPosition = getPolygonTopPosition(feature.geometry.coordinates[0][0]);
 
-                    L.marker(center, {
+                    // Create label with lot number and star for spec home
+                    const lotNumberHtml = feature.properties.status === 'spec_home'
+                        ? `<div>${feature.properties.lot_no}</div><div style="color: #f39c12; font-size: 14px; margin-top: -2px;">★</div>`
+                        : `<div>${feature.properties.lot_no}</div>`;
+
+                    L.marker(topPosition, {
                         icon: L.divIcon({
                             className: 'lot-label',
-                            html: labelHtml,
+                            html: lotNumberHtml,
                             iconSize: null,
                             iconAnchor: [0, 0]
                         })
@@ -109,6 +112,28 @@ function getPolygonCenter(coordinates) {
     });
 
     return [lat / n, lng / n];
+}
+
+// Calculate polygon top position (northernmost point with slight offset inward)
+function getPolygonTopPosition(coordinates) {
+    // Find the northernmost (highest latitude) point
+    let maxLat = -Infinity;
+    let maxLatLng = 0;
+
+    coordinates.forEach(coord => {
+        if (coord[1] > maxLat) {
+            maxLat = coord[1];
+            maxLatLng = coord[0];
+        }
+    });
+
+    // Get center for longitude reference
+    const center = getPolygonCenter(coordinates);
+
+    // Position slightly below the top edge (85% up from center to top)
+    const offsetLat = center[0] + (maxLat - center[0]) * 0.85;
+
+    return [offsetLat, center[1]];
 }
 
 // Status color mapping
