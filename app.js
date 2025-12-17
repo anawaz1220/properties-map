@@ -62,17 +62,17 @@ function loadLotsData() {
             // Add labels for each lot
             data.features.forEach(feature => {
                 if (feature.properties.lot_no) {
-                    const topPosition = getPolygonTopPosition(feature.geometry.coordinates[0][0]);
+                    const center = getPolygonCenter(feature.geometry.coordinates[0][0]);
 
-                    // Create label with lot number and star for spec home
-                    const lotNumberHtml = feature.properties.status === 'spec_home'
-                        ? `<div>${feature.properties.lot_no}</div><div style="color: #f39c12; font-size: 14px; margin-top: -2px;">★</div>`
-                        : `<div>${feature.properties.lot_no}</div>`;
+                    // Add star icon for spec home (lot 22)
+                    const labelHtml = feature.properties.status === 'spec_home'
+                        ? `${feature.properties.lot_no} <span style="color: #f39c12;">★</span>`
+                        : feature.properties.lot_no;
 
-                    L.marker(topPosition, {
+                    L.marker(center, {
                         icon: L.divIcon({
                             className: 'lot-label',
-                            html: lotNumberHtml,
+                            html: labelHtml,
                             iconSize: null,
                             iconAnchor: [0, 0]
                         })
