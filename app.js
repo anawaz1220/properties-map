@@ -119,7 +119,7 @@ function loadLotsData() {
 // Update label visibility based on zoom level
 function updateLabelVisibility() {
     const currentZoom = map.getZoom();
-    const minZoomForLabels = 18; // Hide labels below this zoom level
+    const minZoomForLabels = 17; // Hide labels below this zoom level
 
     labelMarkers.forEach(marker => {
         if (currentZoom >= minZoomForLabels) {
@@ -129,7 +129,7 @@ function updateLabelVisibility() {
         }
     });
 
-    // Close all tooltips when at zoom 18 or higher
+    // Close all tooltips when at zoom 17 or higher
     if (currentZoom >= minZoomForLabels && lotsLayer) {
         lotsLayer.eachLayer(function(layer) {
             if (layer.getTooltip()) {
@@ -242,9 +242,9 @@ function onEachLot(feature, layer) {
         layer.bringToFront();
         map._container.style.cursor = 'pointer';
 
-        // Show tooltip only when labels are hidden (zoom < 18)
+        // Show tooltip only when labels are hidden (zoom < 17)
         const currentZoom = map.getZoom();
-        if (currentZoom < 18) {
+        if (currentZoom < 17) {
             layer.openTooltip();
         } else {
             layer.closeTooltip();
@@ -293,8 +293,18 @@ function selectLot(layer, feature) {
     const bounds = layer.getBounds();
     const center = bounds.getCenter();
 
+    // For mobile, offset the target position upward to prevent drawer from blocking the polygon
+    let targetLatLng = center;
+    if (isMobile) {
+        // Get current map bounds
+        const mapBounds = map.getBounds();
+        const latDiff = mapBounds.getNorth() - mapBounds.getSouth();
+        // Offset the center upward by 25% of the viewport height
+        targetLatLng = L.latLng(center.lat + latDiff * 0.15, center.lng);
+    }
+
     // Fly to the lot with smooth animation
-    map.flyTo(center, Math.max(map.getZoom(), 18), {
+    map.flyTo(targetLatLng, Math.max(map.getZoom(), 18), {
         duration: 1.2,
         easeLinearity: 0.25
     });
