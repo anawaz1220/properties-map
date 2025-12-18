@@ -2,9 +2,13 @@
 let map;
 let lotsLayer;
 let selectedLot = null;
+
+// Detect mobile screen
+const isMobile = window.innerWidth <= 768;
+
 let initialView = {
     center: [40.23305, -83.02365],
-    zoom: 18
+    zoom: isMobile ? 16 : 18
 };
 
 // Base map layers - Using Google Satellite tiles via third-party provider
@@ -49,6 +53,9 @@ function initMap() {
     loadLotsData();
 }
 
+// Store label markers for zoom-based visibility
+let labelMarkers = [];
+
 // Load and display lots
 function loadLotsData() {
     fetch('lots.geojson')
@@ -69,16 +76,25 @@ function loadLotsData() {
                         ? `${feature.properties.lot_no} <span style="color: #f39c12;">★</span>`
                         : feature.properties.lot_no;
 
-                    L.marker(center, {
+                    const marker = L.marker(center, {
                         icon: L.divIcon({
                             className: 'lot-label',
                             html: labelHtml,
-                            iconSize: null,
-                            iconAnchor: [0, 0]
-                        })
+                            iconSize: [50, 20],
+                            iconAnchor: [25, 10]
+                        }),
+                        interactive: false  // Make labels non-interactive
                     }).addTo(map);
+
+                    labelMarkers.push(marker);
                 }
             });
+
+            // Update label visibility based on zoom
+            updateLabelVisibility();
+
+            // Add zoom event listener
+            map.on('zoomend', updateLabelVisibility);
 
             // Fit map to lots bounds
             map.fitBounds(lotsLayer.getBounds(), {
@@ -98,6 +114,29 @@ function loadLotsData() {
             document.getElementById('loading').classList.add('hidden');
             alert('Error loading property data. Please refresh the page.');
         });
+}
+
+// Update label visibility based on zoom level
+function updateLabelVisibility() {
+    const currentZoom = map.getZoom();
+    const minZoomForLabels = 18; // Hide labels below this zoom level
+
+    labelMarkers.forEach(marker => {
+        if (currentZoom >= minZoomForLabels) {
+            marker.setOpacity(1);
+        } else {
+            marker.setOpacity(0);
+        }
+    });
+
+    // Close all tooltips when at zoom 18 or higher
+    if (currentZoom >= minZoomForLabels && lotsLayer) {
+        lotsLayer.eachLayer(function(layer) {
+            if (layer.getTooltip()) {
+                layer.closeTooltip();
+            }
+        });
+    }
 }
 
 // Calculate polygon center
@@ -182,32 +221,59 @@ function getSelectedStyle(feature) {
 
 // Add interactivity to each lot
 function onEachLot(feature, layer) {
+    // Bind tooltip for hover display (shown when labels are hidden)
+    const tooltipContent = feature.properties.status === 'spec_home'
+        ? `${feature.properties.lot_no} ★`
+        : feature.properties.lot_no;
+
+    layer.bindTooltip(tooltipContent, {
+        permanent: false,
+        direction: 'top',
+        className: 'lot-tooltip',
+        opacity: 1,
+        offset: [0, -10]
+    });
+
     // Hover effects
     layer.on('mouseover', function(e) {
         if (selectedLot !== layer) {
             layer.setStyle(getHighlightStyle(feature));
         }
         layer.bringToFront();
+        map._container.style.cursor = 'pointer';
+
+        // Show tooltip only when labels are hidden (zoom < 18)
+        const currentZoom = map.getZoom();
+        if (currentZoom < 18) {
+            layer.openTooltip();
+        } else {
+            layer.closeTooltip();
+        }
     });
 
     layer.on('mouseout', function(e) {
         if (selectedLot !== layer) {
             layer.setStyle(getDefaultStyle(feature));
         }
+        map._container.style.cursor = '';
+
+        // Always close tooltip on mouseout
+        layer.closeTooltip();
     });
 
-    // Click event
-    layer.on('click', function(e) {
+    // Click event - ensure it captures clicks on the entire polygon
+    layer.on('click', function() {
+        // Close tooltip immediately on click
+        layer.closeTooltip();
         selectLot(layer, feature);
     });
 
-    // Add cursor pointer
-    layer.on('mouseover', function() {
-        map._container.style.cursor = 'pointer';
-    });
-
-    layer.on('mouseout', function() {
-        map._container.style.cursor = '';
+    // Also handle touchend for mobile devices
+    layer.on('touchend', function(e) {
+        L.DomEvent.preventDefault(e);
+        // Close tooltip immediately on touch
+        layer.closeTooltip();
+        selectLot(layer, feature);
     });
 }
 

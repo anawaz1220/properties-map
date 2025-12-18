@@ -195,6 +195,32 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 100%;
+}
+
+/* Lot Hover Tooltips */
+.lot-tooltip {
+    background: rgba(26, 26, 26, 0.95) !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 8px 14px !important;
+    font-weight: 700 !important;
+    font-size: 13px !important;
+    color: #fff !important;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.4) !important;
+    transition: opacity 0.2s ease-in-out !important;
+    pointer-events: none !important;
+}
+
+.lot-tooltip::before {
+    display: none !important;
+}
+
+.leaflet-tooltip-top,
+.leaflet-tooltip-bottom,
+.leaflet-tooltip-left,
+.leaflet-tooltip-right {
+    transition: opacity 0.2s ease-in-out !important;
 }
 
 /* Leaflet Custom Styles */
