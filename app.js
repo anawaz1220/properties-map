@@ -119,7 +119,7 @@ function loadLotsData() {
 // Update label visibility based on zoom level
 function updateLabelVisibility() {
     const currentZoom = map.getZoom();
-    const minZoomForLabels = 17; // Hide labels below this zoom level
+    const minZoomForLabels = 18; // Hide labels below this zoom level
 
     labelMarkers.forEach(marker => {
         if (currentZoom >= minZoomForLabels) {
@@ -129,7 +129,7 @@ function updateLabelVisibility() {
         }
     });
 
-    // Close all tooltips when at zoom 17 or higher
+    // Close all tooltips when at zoom 18 or higher
     if (currentZoom >= minZoomForLabels && lotsLayer) {
         lotsLayer.eachLayer(function(layer) {
             if (layer.getTooltip()) {
@@ -203,7 +203,7 @@ function getHighlightStyle(feature) {
         weight: 3,
         opacity: 1,
         color: '#1a1a1a',
-        fillOpacity: 0.6
+        fillOpacity: 0.4
     };
 }
 
@@ -242,9 +242,9 @@ function onEachLot(feature, layer) {
         layer.bringToFront();
         map._container.style.cursor = 'pointer';
 
-        // Show tooltip only when labels are hidden (zoom < 17)
+        // Show tooltip only when labels are hidden (zoom < 18)
         const currentZoom = map.getZoom();
-        if (currentZoom < 17) {
+        if (currentZoom < 18) {
             layer.openTooltip();
         } else {
             layer.closeTooltip();
@@ -293,14 +293,14 @@ function selectLot(layer, feature) {
     const bounds = layer.getBounds();
     const center = bounds.getCenter();
 
-    // For mobile, offset the target position upward to prevent drawer from blocking the polygon
+    // For mobile, offset the target position downward so polygon appears at top of screen
     let targetLatLng = center;
     if (isMobile) {
         // Get current map bounds
         const mapBounds = map.getBounds();
         const latDiff = mapBounds.getNorth() - mapBounds.getSouth();
-        // Offset the center upward by 25% of the viewport height
-        targetLatLng = L.latLng(center.lat + latDiff * 0.15, center.lng);
+        // Position polygon at 30% from top (70% from bottom) - offset downward by 30% of viewport
+        targetLatLng = L.latLng(center.lat - latDiff * 0.15, center.lng);
     }
 
     // Fly to the lot with smooth animation
